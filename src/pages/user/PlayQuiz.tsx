@@ -4,6 +4,8 @@ import { io, Socket } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Clock, Trophy, Loader2, Triangle, Square, Circle, Diamond } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 interface Participant {
   id: string;
   name: string;
@@ -49,7 +51,7 @@ export function PlayQuiz() {
       return;
     }
 
-    const newSocket = io();
+    const newSocket = API_URL ? io(API_URL) : io();
     setSocket(newSocket);
 
     newSocket.on("connect", () => {

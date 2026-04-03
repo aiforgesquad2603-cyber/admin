@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 export interface Question {
   id: string;
   text: string;
@@ -32,7 +34,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   fetchQuizzes: async () => {
     set({ isLoading: true });
     try {
-      const res = await axios.get("/api/quizzes");
+      const res = await axios.get(`${API_URL}/api/quizzes`);
       set({ quizzes: res.data });
     } catch (error) {
       console.error("Failed to fetch quizzes", error);
@@ -43,7 +45,7 @@ export const useQuizStore = create<QuizState>((set) => ({
 
   createQuiz: async (quiz) => {
     try {
-      const res = await axios.post("/api/quizzes", quiz);
+      const res = await axios.post(`${API_URL}/api/quizzes`, quiz);
       set((state) => ({ quizzes: [...state.quizzes, res.data] }));
     } catch (error) {
       console.error("Failed to create quiz", error);
@@ -52,7 +54,7 @@ export const useQuizStore = create<QuizState>((set) => ({
 
   deleteQuiz: async (id) => {
     try {
-      await axios.delete(`/api/quizzes/${id}`);
+      await axios.delete(`${API_URL}/api/quizzes/${id}`);
       set((state) => ({ quizzes: state.quizzes.filter((q) => q.id !== id) }));
     } catch (error) {
       console.error("Failed to delete quiz", error);

@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -17,8 +18,9 @@ async function startServer() {
     },
   });
 
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
+  app.use(cors({ origin: "*" }));
   app.use(express.json());
 
   // Connect to MongoDB

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 interface Participant {
   id: string;
   name: string;
@@ -39,7 +41,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
   connect: () => {
     if (get().socket) return;
-    const socket = io(); // Connects to the same host/port
+    const socket = API_URL ? io(API_URL) : io();
     
     socket.on("participants-update", (data) => set({ participants: data }));
     socket.on("leaderboard-update", (data) => set({ leaderboard: data }));
@@ -61,7 +63,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   },
 
   createSession: async (quizId: string) => {
-    const res = await fetch("/api/live/create", {
+    const res = await fetch(`${API_URL}/api/live/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ quizId })
