@@ -38,9 +38,15 @@ export const useQuizStore = create<QuizState>((set) => ({
     set({ isLoading: true });
     try {
       const res = await axios.get(`${API_URL}/api/quizzes`);
-      set({ quizzes: res.data });
+      if (Array.isArray(res.data)) {
+        set({ quizzes: res.data });
+      } else {
+        console.error("Expected array of quizzes, got:", res.data);
+        set({ quizzes: [] });
+      }
     } catch (error) {
       console.error("Failed to fetch quizzes", error);
+      set({ quizzes: [] });
     } finally {
       set({ isLoading: false });
     }
