@@ -23,8 +23,9 @@ export function Quizzes() {
       await generateQuiz(topic, difficulty, questionCount);
       setIsModalOpen(false);
       setTopic("");
-    } catch (error) {
-      alert("Failed to generate quiz. Please try again.");
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || "Failed to generate quiz. Please try again.";
+      alert(errorMsg);
     }
   };
 
