@@ -22,14 +22,17 @@ export interface Quiz {
 interface QuizState {
   quizzes: Quiz[];
   isLoading: boolean;
+  isGenerating: boolean;
   fetchQuizzes: () => Promise<void>;
   createQuiz: (quiz: Omit<Quiz, "id">) => Promise<void>;
+  generateQuiz: (topic: string, difficulty: string, questionCount: number) => Promise<void>;
   deleteQuiz: (id: string) => Promise<void>;
 }
 
 export const useQuizStore = create<QuizState>((set) => ({
   quizzes: [],
   isLoading: false,
+  isGenerating: false,
 
   fetchQuizzes: async () => {
     set({ isLoading: true });
@@ -46,9 +49,22 @@ export const useQuizStore = create<QuizState>((set) => ({
   createQuiz: async (quiz) => {
     try {
       const res = await axios.post(`${API_URL}/api/quizzes`, quiz);
-      set((state) => ({ quizzes: [...state.quizzes, res.data] }));
+      set((state) => ({ quizzes: [res.data, ...state.quizzes] }));
     } catch (error) {
       console.error("Failed to create quiz", error);
+    }
+  },
+
+  generateQuiz: async (topic, difficulty, questionCount) => {
+    set({ isGenerating: true });
+    try {
+      const res = await axios.post(`${API_URL}/api/generate-quiz`, { topic, difficulty, questionCount });
+      set((state) => ({ quizzes: [res.data, ...state.quizzes] }));
+    } catch (error) {
+      console.error("Failed to generate quiz", error);
+      throw error;
+    } finally {
+      set({ isGenerating: false });
     }
   },
 

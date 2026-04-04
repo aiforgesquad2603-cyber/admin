@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import liveRoutes from "./server/routes/liveRoutes";
 import { setupLiveSockets } from "./server/sockets/liveSocket";
 import { Quiz } from "./server/models/Quiz";
+import { GoogleGenAI, Type } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -49,6 +50,74 @@ async function startServer() {
   }
 
   // API Routes
+  app.post("/api/generate-quiz", async (req, res) => {
+    try {
+      const { topic, difficulty = "Medium", questionCount = 5 } = req.body;
+      
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "Gemini API key is not configured on the server." });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      const prompt = `Generate a quiz about "${topic}". 
+      Difficulty: ${difficulty}. 
+      Number of questions: ${questionCount}.
+      Make sure the questions are accurate and the options are distinct.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING, description: "A catchy title for the quiz" },
+              description: { type: Type.STRING, description: "A short description of the quiz" },
+              questions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    text: { type: Type.STRING, description: "The question text" },
+                    options: { 
+                      type: Type.ARRAY, 
+                      items: { type: Type.STRING },
+                      description: "Exactly 4 possible answers"
+                    },
+                    correctIndex: { type: Type.INTEGER, description: "The index (0-3) of the correct answer in the options array" }
+                  },
+                  required: ["text", "options", "correctIndex"]
+                }
+              }
+            },
+            required: ["title", "description", "questions"]
+          }
+        }
+      });
+
+      const generatedData = JSON.parse(response.text || "{}");
+      
+      // Save to database
+      const newQuiz = await Quiz.create({
+        title: generatedData.title,
+        description: generatedData.description,
+        difficulty,
+        timePerQuestion: 20,
+        questions: generatedData.questions
+      });
+
+      const obj = newQuiz.toObject();
+      obj.id = obj._id.toString();
+      res.status(201).json(obj);
+      
+    } catch (err) {
+      console.error("Error generating quiz:", err);
+      res.status(500).json({ error: "Failed to generate quiz", details: String(err) });
+    }
+  });
+
   app.get("/api/quizzes", async (req, res) => {
     try {
       const quizzes = await Quiz.find().sort({ createdAt: -1 });

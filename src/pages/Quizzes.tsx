@@ -1,26 +1,41 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
-import { Plus, Play, Edit, Trash2, Clock, BarChart } from "lucide-react";
+import { Plus, Play, Edit, Trash2, Clock, BarChart, Sparkles, X, Loader2 } from "lucide-react";
 import { useQuizStore } from "@/src/store/quizStore";
 import { useNavigate } from "react-router-dom";
 
 export function Quizzes() {
-  const { quizzes, fetchQuizzes, deleteQuiz } = useQuizStore();
+  const { quizzes, fetchQuizzes, deleteQuiz, generateQuiz, isGenerating } = useQuizStore();
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [difficulty, setDifficulty] = useState("Medium");
+  const [questionCount, setQuestionCount] = useState(5);
 
   useEffect(() => {
     fetchQuizzes();
   }, [fetchQuizzes]);
 
+  const handleGenerate = async () => {
+    if (!topic.trim()) return;
+    try {
+      await generateQuiz(topic, difficulty, questionCount);
+      setIsModalOpen(false);
+      setTopic("");
+    } catch (error) {
+      alert("Failed to generate quiz. Please try again.");
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Quizzes</h2>
           <p className="text-muted-foreground mt-2">Manage your quiz library and create new ones.</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setIsModalOpen(true)}>
           <Plus className="w-4 h-4" />
           Create Quiz
         </Button>
@@ -64,9 +79,6 @@ export function Quizzes() {
                   <Play className="w-4 h-4" />
                   Host Live
                 </Button>
-                <Button variant="outline" size="icon" className="shrink-0">
-                  <Edit className="w-4 h-4" />
-                </Button>
                 <Button 
                   variant="outline" 
                   size="icon" 
@@ -81,7 +93,10 @@ export function Quizzes() {
         ))}
         
         {/* Empty State / Create New Card */}
-        <Card className="bg-card/20 border-dashed border-2 border-border/50 hover:border-primary/50 hover:bg-card/40 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[250px]">
+        <Card 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-card/20 border-dashed border-2 border-border/50 hover:border-primary/50 hover:bg-card/40 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[250px]"
+        >
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <Plus className="w-6 h-6 text-primary" />
           </div>
@@ -89,6 +104,83 @@ export function Quizzes() {
           <p className="text-sm text-muted-foreground mt-1">Start from scratch or use AI</p>
         </Card>
       </div>
+
+      {/* Create Quiz Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full max-w-md bg-background border-border shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-4">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-500" />
+                Generate Quiz with AI
+              </CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} disabled={isGenerating}>
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Topic</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. History of Rome, React JS, Movies..." 
+                  className="w-full p-2 rounded-md bg-secondary border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  disabled={isGenerating}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Difficulty</label>
+                  <select 
+                    className="w-full p-2 rounded-md bg-secondary border border-border focus:border-primary outline-none"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    disabled={isGenerating}
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Questions</label>
+                  <select 
+                    className="w-full p-2 rounded-md bg-secondary border border-border focus:border-primary outline-none"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(Number(e.target.value))}
+                    disabled={isGenerating}
+                  >
+                    <option value={5}>5 Questions</option>
+                    <option value={10}>10 Questions</option>
+                    <option value={15}>15 Questions</option>
+                  </select>
+                </div>
+              </div>
+
+              <Button 
+                className="w-full mt-6 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" 
+                onClick={handleGenerate}
+                disabled={!topic.trim() || isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate Quiz
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
