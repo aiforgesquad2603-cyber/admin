@@ -50,12 +50,20 @@ async function startServer() {
   }
 
   // API Routes
+  app.get("/api/debug-env", (req, res) => {
+    res.json({
+      hasKey: !!process.env.GEMINI_API_KEY,
+      keyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
+      prefix: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 4) : null
+    });
+  });
+
   app.post("/api/generate-quiz", async (req, res) => {
     try {
       const { topic, difficulty = "Medium", questionCount = 5 } = req.body;
       
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "Gemini API key is not configured on the server." });
+      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "MY_GEMINI_API_KEY") {
+        return res.status(500).json({ error: "Gemini API key is missing or invalid. Please add your real Gemini API key to the environment variables." });
       }
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
